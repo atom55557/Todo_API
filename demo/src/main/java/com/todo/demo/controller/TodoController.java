@@ -1,5 +1,7 @@
 package com.todo.demo.controller;
 
+import com.todo.demo.dto.TodoRequest;
+import com.todo.demo.dto.TodoResponse;
 import com.todo.demo.entity.Todo;
 import com.todo.demo.service.TodoService;
 import lombok.AllArgsConstructor;
@@ -18,13 +20,19 @@ public class TodoController {
     private final TodoService todoService;
 
     @GetMapping
-    public ResponseEntity<List<Todo>> getAll(){
+    public ResponseEntity<List<TodoResponse>> getMyTodos(){
+        return ResponseEntity.ok(todoService.getMyTodos());
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<TodoResponse>> getAllTodos(){
         return ResponseEntity.ok(todoService.getAllTodos());
     }
 
+
     @PostMapping
-    public ResponseEntity<Todo> create(@RequestBody Todo todo) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(todoService.createTodo(todo));
+    public ResponseEntity<TodoResponse> create(@RequestBody TodoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(todoService.createTodo(request));
     }
 
     @PutMapping("/{id}")
