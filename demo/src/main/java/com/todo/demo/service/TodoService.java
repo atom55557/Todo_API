@@ -9,6 +9,7 @@ import com.todo.demo.repository.TodoRepository;
 import com.todo.demo.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -43,20 +44,38 @@ public class TodoService {
         return todoRepository.findById(id).orElseThrow();
     }
     public void deleteTodo(Long id) {
-        if (!todoRepository.existsById(id)) {
-            throw new RuntimeException("Silinmek istenen Todo bulunamadı! ID: " + id);
+
+        Todo todo = todoRepository.findById(id)
+                .orElseThrow(()-> new RuntimeException("Silinmek istenen todo bulunamadı ID:"+ id));
+
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+
+        if(!isAdmin && !todo.getUser().getEmail().equals(currentEmail)){
+            throw new RuntimeException("Bu işlem için yetkiniz yok! Yalnızca kendi notlarınızı silebilirsiniz.");
         }
+
         todoRepository.deleteById(id);
     }
 
-    public Todo updateTodo(Long id, Todo todoDetails) {
+    public TodoResponse updateTodo(Long id, TodoRequest request) {
         Todo existingTodo = todoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Todo bulunamadı! ID: " + id));
 
-        existingTodo.setTitle(todoDetails.getTitle());
-        existingTodo.setDescription(todoDetails.getDescription());
-        existingTodo.setCompleted(todoDetails.isCompleted());
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
 
-        return todoRepository.save(existingTodo);
+        if(!isAdmin && !existingTodo.getUser().getEmail().equals(currentEmail)){
+            throw new RuntimeException("Bu işlem için yetkiniz yok! Yalnızca kendi notlarınızı güncelleyebilirsiniz.");
+        }
+
+        existingTodo.setTitle(request.getTitle());
+        existingTodo.setDescription(request.getDescription());
+        existingTodo.setCompleted(request.isCompleted());
+        Todo updatedTodo = todoRepository.save(existingTodo);
+        return TodoMapper.toResponse(updatedTodo);
     }
 }
